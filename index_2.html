@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Insurance Claim Adjudicator</title>
+    <style>
+        :root {
+            --primary-color: #005c97;
+            --secondary-color: #363795;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .container {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 900px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+        h1 { font-size: 2rem; }
+        h2 { font-size: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem; }
+        .upload-area, .results-area { padding: 1.5rem 0; }
+        label { font-weight: 600; display: block; margin-bottom: 0.5rem; }
+        input[type="file"] { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; }
+        button {
+            background-image: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            color: white; border: none; padding: 14px 22px; border-radius: 8px; cursor: pointer;
+            font-size: 16px; font-weight: bold; width: 100%; transition: transform 0.2s, box-shadow 0.2s; margin-top: 1rem;
+        }
+        button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 92, 151, 0.3); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { text-align: center; font-weight: bold; margin: 1rem 0; font-size: 1.1rem; }
+        pre { background-color: var(--bg-color); padding: 1rem; border-radius: 6px; white-space: pre-wrap; word-wrap: break-word; font-family: 'SF Mono', 'Consolas', monospace; max-height: 400px; overflow-y: auto; }
+        
+        /* New Styles for Data Visualization */
+        .data-category h3 { color: var(--secondary-color); font-size: 1.2rem; margin-top: 1.5rem; }
+        .file-card {
+            background: #fff; border: 1px solid var(--border-color); border-radius: 8px;
+            margin-bottom: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow: hidden;
+        }
+        .file-card-header {
+            background-color: #f7f8fa; padding: 1rem; font-weight: bold;
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        }
+        .file-card-header:hover { background-color: #eff2f6; }
+        .file-card-content { padding: 1rem; border-top: 1px solid var(--border-color); display: none; /* Hidden by default */ }
+        .page-divider {
+            border: 0; height: 1px; background: #ddd; margin: 1.5rem 0;
+        }
+        .data-item { display: flex; padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; }
+        .data-key { font-weight: 600; color: #555; width: 30%; flex-shrink: 0; }
+        .data-value { width: 70%; word-wrap: break-word; }
+        .data-item:last-child { border-bottom: none; }
+        .nested-list { list-style-type: disc; padding-left: 20px; margin-top: 5px; }
+        .nested-list li { margin-bottom: 5px; }
+
+        /* Styles for the Final Assessment Card */
+        .assessment-card { border: 2px solid; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; }
+        .assessment-card h3 { margin-top: 0; font-size: 1.25rem; }
+        .assessment-card ul { padding-left: 20px; }
+        .valid { border-color: var(--success-color); background-color: #f0fff4; }
+        .valid h3 { color: var(--success-color); }
+        .invalid { border-color: var(--error-color); background-color: #fff0f1; }
+        .invalid h3 { color: var(--error-color); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>AI Insurance Claim Adjudicator </h1>
+
+    <div class="upload-area">
+        <h2>Step 1: Upload Documents</h2>
+        <form id="upload-form">
+            <div class="file-category"><label for="report-files">1. Medical Reports</label><input type="file" id="report-files" name="medical_report_files" multiple accept=".pdf,.png,.jpg,.jpeg"></div>
+            <div class="file-category"><label for="prescription-files">2. Doctor Prescriptions</label><input type="file" id="prescription-files" name="prescription_files" multiple accept=".pdf,.png,.jpg,.jpeg"></div>
+            <div class="file-category"><label for="bill-files">3. Medical Bills</label><input type="file" id="bill-files" name="medical_bill_files" multiple accept=".pdf,.png,.jpg,.jpeg"></div>
+            <button type="submit" id="extract-btn">Extract & Verify Data</button>
+        </form>
+    </div>
+
+    <div id="status"></div>
+
+    <div id="extracted-data-details" class="results-area" style="display:none;">
+        <h2>Extracted Data Details</h2>
+        <p style="text-align: center; color: #666;">Click on a file to view its page-by-page extracted data.</p>
+        <div id="data-visualization-container"></div>
+    </div>
+
+    <div class="results-area" id="analysis-section" style="display:none;">
+        <h2>Step 2: Adjudication Analysis</h2>
+        <button id="analyze-btn">Perform Final Claim Analysis</button>
+        <div id="final-assessment-result"></div>
+    </div>
+</div>
+
+<script>
+    const uploadForm = document.getElementById('upload-form');
+    const extractBtn = document.getElementById('extract-btn');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const statusDiv = document.getElementById('status');
+    const analysisSection = document.getElementById('analysis-section');
+    const finalAssessmentResult = document.getElementById('final-assessment-result');
+    const extractedDataDetailsSection = document.getElementById('extracted-data-details');
+    const dataVisualizationContainer = document.getElementById('data-visualization-container');
+    
+    let extractedDataCache = null;
+
+    // --- Event Listener for Form Submission ---
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(uploadForm);
+        statusDiv.textContent = '⏳ Uploading and extracting data...';
+        extractBtn.disabled = true;
+        analysisSection.style.display = 'none';
+        extractedDataDetailsSection.style.display = 'none';
+        finalAssessmentResult.innerHTML = '';
+
+        try {
+            const response = await fetch('http://127.0.0.1:5001/extract-documents', { method: 'POST', body: formData });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Extraction failed. Please review the uploaded files. ');
+
+            statusDiv.textContent = 'Data extraction complete! Ready for analysis.';
+            extractedDataCache = result;
+            displayReadableExtractedData(extractedDataCache);
+            analysisSection.style.display = 'block';
+
+        } catch (error) {
+            statusDiv.textContent = `Error: ${error.message}`;
+        } finally {
+            extractBtn.disabled = false;
+        }
+    });
+
+    // --- Event Listener for Adjudication Button ---
+    analyzeBtn.addEventListener('click', async () => {
+        if (!extractedDataCache) return;
+        statusDiv.textContent = 'Analyzing claim validity...';
+        analyzeBtn.disabled = true;
+
+        try {
+            const response = await fetch('http://127.0.0.1:5001/adjudicate-claim', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(extractedDataCache),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Analysis failed.');
+
+            statusDiv.textContent = 'Analysis Complete!';
+            
+            // [FIX #1] THIS FUNCTION CALL WAS MISSING
+            displayFinalAssessment(result); 
+
+        } catch (error) {
+            statusDiv.textContent = `Error: ${error.message}`;
+        } finally {
+            analyzeBtn.disabled = false;
+        }
+    });
+
+    // --- Data Visualization Function ---
+    function displayReadableExtractedData(data) {
+        // ... (This function is correct from the previous step and does not need changes)
+        dataVisualizationContainer.innerHTML = '';
+        const docTypeMapping = { medical_report: { title: " Medical Reports", icon: "" }, prescription: { title: "Prescriptions", icon: "" }, medical_bill: { title: "Medical Bills"}};
+        let hasData = false;
+        for (const docType in docTypeMapping) {
+            if (data[docType] && data[docType].length > 0) { hasData = true; const categoryDiv = document.createElement('div'); categoryDiv.className = 'data-category'; categoryDiv.innerHTML = `<h3>${docTypeMapping[docType].title}</h3>`; data[docType].forEach(file => { const fileCard = document.createElement('div'); fileCard.className = 'file-card'; const cardHeader = document.createElement('div'); cardHeader.className = 'file-card-header'; cardHeader.innerHTML = `<span>${docTypeMapping[docType].icon} ${file.filename}</span><span>▼</span>`; const cardContent = document.createElement('div'); cardContent.className = 'file-card-content'; file.pages.forEach((pageData, index) => { if (index > 0) { cardContent.appendChild(document.createElement('hr')); cardContent.lastChild.className = 'page-divider'; } const pageTitle = document.createElement('h4'); pageTitle.textContent = `Page ${index + 1}`; cardContent.appendChild(pageTitle); for (const key in pageData) { const dataItem = document.createElement('div'); dataItem.className = 'data-item'; const dataKey = document.createElement('div'); dataKey.className = 'data-key'; dataKey.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); const dataValue = document.createElement('div'); dataValue.className = 'data-value'; const value = pageData[key]; if (Array.isArray(value)) { const ul = document.createElement('ul'); ul.className = 'nested-list'; value.forEach(item => { const li = document.createElement('li'); li.textContent = Object.entries(item).map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join(', '); ul.appendChild(li); }); dataValue.appendChild(ul); } else { dataValue.textContent = value || 'N/A'; } dataItem.appendChild(dataKey); dataItem.appendChild(dataValue); cardContent.appendChild(dataItem); } }); fileCard.appendChild(cardHeader); fileCard.appendChild(cardContent); categoryDiv.appendChild(fileCard); cardHeader.addEventListener('click', () => { const content = cardHeader.nextElementSibling; content.style.display = content.style.display === 'block' ? 'none' : 'block'; cardHeader.querySelector('span:last-child').textContent = content.style.display === 'block' ? '▲' : '▼'; }); }); dataVisualizationContainer.appendChild(categoryDiv); } }
+        if (hasData) { extractedDataDetailsSection.style.display = 'block'; }
+    }
+
+    // --- [FIX #2] THIS ENTIRE FUNCTION WAS MISSING ---
+    function displayFinalAssessment(data) {
+        const assessment = data.finalAssessment;
+        const validation = data.claimValidation;
+        const cardClass = assessment.isClaimValid ? 'valid' : 'invalid';
+        const decisionText = assessment.isClaimValid ? 'VALID' : 'INVALID';
+        const confidence = (assessment.confidenceScore * 100).toFixed(1);
+        const reasoningList = assessment.reasoning.map(item => `<li>${item}</li>`).join('');
+
+        finalAssessmentResult.innerHTML = `
+            <div class="assessment-card ${cardClass}">
+                <h3>Final Assessment: ${decisionText} (Confidence: ${confidence}%)</h3>
+                <p><strong>Detailed Reasoning:</strong></p>
+                <ul>${reasoningList}</ul>
+                <hr>
+                <p><strong>Consistency Checks:</strong></p>
+                <ul>
+                    <li>Patient Name Consistent: ${validation.isPatientNameConsistent ? '✔️ Yes' : '❌ No'}</li>
+                    <li>Diagnosis Consistent: ${validation.isConsistent ? '✔️ Yes' : '❌ No'}</li>
+                    <li>Treatment/Bill Match: ${validation.isTreatmentBillMatch ? '✔️ Yes' : '❌ No'}</li>
+                    <li>Date Sequence Logical: ${validation.isDateSequenceLogical ? '✔️ Yes' : '❌ No'}</li>
+                </ul>
+            </div>
+            <h4>Raw Adjudication JSON</h4>
+            <pre>${JSON.stringify(data, null, 2)}</pre>`;
+    }
+</script>
+</body>
+</html>
