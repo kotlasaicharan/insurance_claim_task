@@ -18,14 +18,12 @@ load_dotenv()
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)  # Enables CORS for all routes
 
-# --- GEMINI API CONFIGURATION ---
 try:
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
     logger.info("✅ Gemini API configured successfully.")
 except Exception as e:
     logger.error(f"❌ Failed to configure Gemini API: {e}")
 
-# --- ENHANCED DATA SCHEMAS FOR ADJUDICATION ---
 SCHEMAS = {
     "medical_report": {
         "patient_name": "", "hospital_name": "",
@@ -78,7 +76,7 @@ def convert_pdf_to_images(pdf_bytes):
         if not pdf_bytes:
             raise ValueError("Empty PDF bytes received")
 
-        poppler_path = r"C:\poppler-24.08.0\Library\bin"
+        poppler_path = r"C:\poppler-24.08.0\Library\bin" # use your custom path
         if not os.path.exists(poppler_path):
             raise ValueError(f"Poppler not found at: {poppler_path}")
             
@@ -140,8 +138,6 @@ def extract_data_with_gemini(image_list, doc_type):
             extracted_pages.append(schema) # Append blank schema on failure
 
     return extracted_pages
-
-# --- API ENDPOINTS ---
 
 @app.route('/')
 def index():
@@ -248,7 +244,7 @@ def adjudicate_claim():
 
 Apply the following logic to generate your response.
 
-isPatientNameConsistent: Is the patient's name identical across all data sources (clinical, prescription, and billing)? Only fail if there are substantial differences indicating different individuals (different first names, last names, or clearly unrelated identifiers).
+isPatientNameConsistent: Only fail if there are substantial differences indicating different individuals (different first names, last names, or clearly unrelated identifiers).
 
 isConsistent: Does the patient's diagnosis justify the prescribed medications?
 
@@ -284,4 +280,5 @@ reasing: Every check must be justified with specific data from the source. This 
 
 # --- MAIN EXECUTION ---
 if __name__ == '__main__':
+
     app.run(debug=True, port=5001)
